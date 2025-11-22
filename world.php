@@ -6,17 +6,58 @@ $dbname = 'world';
 
 $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
 
-// Check Country
-if (isset($_GET['country'])){
-  $country = $_GET['country'];
-  $stmt = $conn->query("SELECT * FROM countries WHERE name LIKE '%$country%'");
+//check thype of lookup
+$lookupType = isset($_GET['lookup']) ? $_GET['lookup'] : 'countries';
 
+// Check Country
+if (isset($_GET['country']) && !empty($_GET['country'])) {
+  $country = $_GET['country'];
+  if ($lookupType === 'cities') {
+    $stmt = $conn->query("SELECT cities.name as city_name, cities.district, cities.population 
+                             FROM cities 
+                             JOIN countries ON cities.country_code = countries.code 
+                             WHERE countries.name LIKE '%$country%' 
+                             ORDER BY cities.population DESC");
+
+  }else{
+    $stmt = $conn->query("SELECT * FROM countries WHERE name LIKE '%$country%'");
+  }
+
+ 
 }else {
-$stmt = $conn->query("SELECT * FROM countries");
+  if ($lookupType === 'cities') {
+    echo "Please enter a country name for city lookup.";
+    exit;
+  } else {
+    $stmt = $conn->query("SELECT * FROM countries");
+  }
 }
 
 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+if ($lookupType === 'cities') {
+  //display city
+?>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>District</th>
+      <th>Population</th>
+    </tr>
+  </thead>
+  <tbody>
+<?php foreach ($results as $row): ?>
+  <td><?= $row['city_name'] ?></td>
+  <td><?= $row['district']; ?></td>
+  <td><?= $row['population']; ?></td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+<?php
+} else {
+//display country
 ?>
 <table>
   <thead>
@@ -37,3 +78,8 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php endforeach; ?>
 </tbody>
 </table>
+<?php
+}
+?>
+
+
